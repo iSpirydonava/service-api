@@ -40,8 +40,7 @@ class ItemInfoUtilsTest {
 
   @Test
   void emptyAttributesCollectionTest() {
-    Optional<ItemAttribute> attribute = ItemInfoUtils.extractAttribute(Collections.emptyList(),
-        "key");
+    Optional<ItemAttribute> attribute = ItemInfoUtils.extractAttribute(Collections.emptyList(), "key");
     assertTrue(attribute.isEmpty());
   }
 
@@ -70,23 +69,20 @@ class ItemInfoUtilsTest {
 
   @Test
   void nullAttributeResourceCollectionTest() {
-    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(
-        null, "key");
+    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(null, "key");
     assertTrue(itemAttributeResource.isEmpty());
   }
 
   @Test
   void emptyAttributeResourcesCollectionTest() {
-    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(
-        Collections.emptyList(), "key");
+    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(Collections.emptyList(), "key");
     assertTrue(itemAttributeResource.isEmpty());
   }
 
   @Test
   void shouldFindAttributeResource() {
     String key = "key1";
-    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(
-        getAttributeResources(), key);
+    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(getAttributeResources(), key);
     assertTrue(itemAttributeResource.isPresent());
     assertEquals(key, itemAttributeResource.get().getKey());
   }
@@ -94,9 +90,94 @@ class ItemInfoUtilsTest {
   @Test
   void shouldNotFindAttributeResource() {
     String key = "not-exist";
-    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(
-        getAttributeResources(), key);
+    Optional<ItemAttributeResource> itemAttributeResource = ItemInfoUtils.extractAttributeResource(getAttributeResources(), key);
     assertTrue(itemAttributeResource.isEmpty());
+  }
+
+  @Test
+  void updateDescriptionCreateTest() {
+    BulkInfoUpdateRQ.Description descriptionRq = new BulkInfoUpdateRQ.Description();
+    descriptionRq.setAction(BulkInfoUpdateRQ.Action.CREATE);
+    descriptionRq.setComment("New Comment");
+    Optional<String> result = ItemInfoUtils.updateDescription(descriptionRq, "Existing Description");
+    assertTrue(result.isPresent());
+    assertEquals("New Comment", result.get());
+  }
+
+  @Test
+  void updateDescriptionUpdateTest() {
+    BulkInfoUpdateRQ.Description descriptionRq = new BulkInfoUpdateRQ.Description();
+    descriptionRq.setAction(BulkInfoUpdateRQ.Action.UPDATE);
+    descriptionRq.setComment("Updated Comment");
+    Optional<String> result = ItemInfoUtils.updateDescription(descriptionRq, "Existing Description");
+    assertTrue(result.isPresent());
+    assertEquals("Existing Description Updated Comment", result.get());
+  }
+
+  @Test
+  void updateDescriptionNullTest() {
+    Optional<String> result = ItemInfoUtils.updateDescription(null, "Existing Description");
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void updateDescriptionEmptyCommentTest() {
+    BulkInfoUpdateRQ.Description descriptionRq = new BulkInfoUpdateRQ.Description();
+    descriptionRq.setAction(BulkInfoUpdateRQ.Action.CREATE);
+    descriptionRq.setComment(null);
+    Optional<String> result = ItemInfoUtils.updateDescription(descriptionRq, "Existing Description");
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  void findAttributeByResourceTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    ItemAttributeResource resource = new ItemAttributeResource("key1", "value1");
+    ItemAttribute result = ItemInfoUtils.findAttributeByResource(attributes, resource);
+    assertEquals("key1", result.getKey());
+    assertEquals("value1", result.getValue());
+  }
+
+  @Test
+  void findAttributeByResourceNotFoundTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    ItemAttributeResource resource = new ItemAttributeResource("key2", "value2");
+    assertThrows(ReportPortalException.class, () -> ItemInfoUtils.findAttributeByResource(attributes, resource));
+  }
+
+  @Test
+  void updateAttributeTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    UpdateItemAttributeRQ updateItemAttributeRQ = new UpdateItemAttributeRQ();
+    updateItemAttributeRQ.setFrom(new ItemAttributeResource("key1", "value1"));
+    updateItemAttributeRQ.setTo(new ItemAttributeResource("key2", "value2"));
+    ItemInfoUtils.updateAttribute(attributes, updateItemAttributeRQ);
+    assertTrue(attributes.stream().anyMatch(attr -> "key2".equals(attr.getKey()) && "value2".equals(attr.getValue())));
+  }
+
+  @Test
+  void updateAttributeNotFoundTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    UpdateItemAttributeRQ updateItemAttributeRQ = new UpdateItemAttributeRQ();
+    updateItemAttributeRQ.setFrom(new ItemAttributeResource("key2", "value2"));
+    updateItemAttributeRQ.setTo(new ItemAttributeResource("key3", "value3"));
+    assertThrows(ReportPortalException.class, () -> ItemInfoUtils.updateAttribute(attributes, updateItemAttributeRQ));
+  }
+
+  @Test
+  void containsAttributeTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    ItemAttributeResource resource = new ItemAttributeResource("key1", "value1");
+    boolean result = ItemInfoUtils.containsAttribute(attributes, resource);
+    assertFalse(result);
+  }
+
+  @Test
+  void containsAttributeNotFoundTest() {
+    Set<ItemAttribute> attributes = Sets.newHashSet(new ItemAttribute("key1", "value1", false));
+    ItemAttributeResource resource = new ItemAttributeResource("key2", "value2");
+    boolean result = ItemInfoUtils.containsAttribute(attributes, resource);
+    assertTrue(result);
   }
 
   private List<ItemAttribute> getAttributes() {
@@ -108,7 +189,9 @@ class ItemInfoUtilsTest {
   }
 
   private List<ItemAttributeResource> getAttributeResources() {
-    return Lists.newArrayList(new ItemAttributeResource("key1", "value1"),
-        new ItemAttributeResource("key2", "value2"));
+    return Lists.newArrayList(
+        new ItemAttributeResource("key1", "value1"),
+        new ItemAttributeResource("key2", "value2")
+    );
   }
 }
